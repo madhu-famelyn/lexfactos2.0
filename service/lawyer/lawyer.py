@@ -4,8 +4,6 @@ from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from models.lawyer.lawyer import Lawyer
 from sqlalchemy import func, or_, cast, String
-from sqlalchemy import func
-from sqlalchemy import func, or_
 from schemas.lawyer.lawyer import (
     LawyerCreate,
     LawyerUpdate,
@@ -15,11 +13,10 @@ from schemas.lawyer.lawyer import (
 import uuid
 import json
 import math
+from datetime import datetime, timezone, timedelta
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
 
 
 class LawyerService:
@@ -95,18 +92,14 @@ class LawyerService:
     def create_lawyer(db: Session, lawyer_data: LawyerCreate, file=None) -> Lawyer:
         data = lawyer_data.dict()
 
-        # 1️⃣ Upload image if present
         if file:
             from utiles.s3_service import upload_to_s3
             image_url = upload_to_s3(file)
             data["image_url"] = image_url
 
-        # 2️⃣ VALIDATIONS
         LawyerService._validate_full_name(data["full_name"])
         LawyerService._validate_email(data["email"])
-        # Phone validation removed as you requested
 
-        # 3️⃣ Duplicate checks
         if db.query(Lawyer).filter(Lawyer.email == data["email"]).first():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -119,7 +112,6 @@ class LawyerService:
                 detail="Phone number already exists."
             )
 
-        # 4️⃣ Hash password
         data["password"] = LawyerService.hash_password(data["password"])
 
         data.update({
@@ -129,24 +121,11 @@ class LawyerService:
             "rejected_reason": None
         })
 
-        # 5️⃣ Save in DB
         obj = Lawyer(**data)
         db.add(obj)
-
-        try:
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Duplicate entry found (email or phone)."
-            )
-
+        db.commit()
         db.refresh(obj)
         return obj
-
-
-
 
     # ============================================================
     # UPDATE LAWYER
@@ -161,7 +140,6 @@ class LawyerService:
 
         if "full_name" in update_dict:
             LawyerService._validate_full_name(update_dict["full_name"])
-
 
         if "email" in update_dict:
             LawyerService._validate_email(update_dict["email"])
@@ -183,7 +161,9 @@ class LawyerService:
             raise ValueError("Lawyer not found.")
 
         LawyerService._validate_status(status_data.status)
-        LawyerService._validate_rejected_reason(status_data.status, status_data.rejected_reason)
+        LawyerService._validate_rejected_reason(
+            status_data.status, status_data.rejected_reason
+        )
 
         lawyer.status = status_data.status
         lawyer.rejected_reason = status_data.rejected_reason
@@ -218,10 +198,8 @@ class LawyerService:
         return db.query(Lawyer).filter(Lawyer.status == status).all()
 
     # ============================================================
-    # BULK CREATE FROM EXCEL WITH FULL VALIDATION
+    # BULK CREATE FROM EXCEL
     # ============================================================
-
-
     FIXED_IMAGE_URL = "https://fliplyn-assets.s3.ap-south-1.amazonaws.com/lawyers/f377e72b-1414-49d2-be61-7f7d78376497.png"
 
     @staticmethod
@@ -229,15 +207,11 @@ class LawyerService:
         created_lawyers = []
 
         for data in lawyers:
-
-            # Clean null / nan from Excel
             clean = {k: LawyerService._safe(v) for k, v in data.dict().items()}
 
-            # Mandatory validations
             LawyerService._validate_full_name(clean["full_name"])
             LawyerService._validate_email(clean["email"])
 
-            # Generate random password
             random_password = uuid.uuid4().hex[:10]
             hashed_password = LawyerService.hash_password(random_password)
 
@@ -253,7 +227,7 @@ class LawyerService:
                 phone_number=clean["phone_number"],
                 website_link=clean["website_link"],
                 linkedin_link=clean["linkedin_link"],
-                image_url=LawyerService.FIXED_IMAGE_URL,   # <-- always set
+                image_url=LawyerService.FIXED_IMAGE_URL,
                 known_languages=clean.get("known_languages"),
                 role="lawyer",
                 status="approved",
@@ -268,8 +242,7 @@ class LawyerService:
         db.commit()
         return created_lawyers
 
-
-  # ============================================================
+    # ============================================================
     # SEARCH LAWYERS (keyword + country + pagination)
     # ============================================================
     @staticmethod
@@ -287,15 +260,12 @@ class LawyerService:
                 detail="Country name is required."
             )
 
-        # Normalize
         country = country.strip().lower()
 
-        # Always filter by country first
         query = db.query(Lawyer).filter(
             func.lower(Lawyer.country) == country
         )
 
-        # If keyword exists, apply extra filters
         if keyword:
             keyword = keyword.strip().lower()
             like = f"%{keyword}%"
@@ -309,12 +279,6 @@ class LawyerService:
                 )
             )
 
-        # Pagination
-        if start < 1:
-            start = 1
-        if end < start:
-            end = start + 9
-
         limit = end - start + 1
         offset = start - 1
 
@@ -327,3 +291,37 @@ class LawyerService:
             )
 
         return results
+
+    # ============================================================
+    # UPDATE LAWYER POSITION
+    # ============================================================
+    @staticmethod
+    def update_lawyer_position(
+        db: Session,
+        lawyer_id: str,
+        position_status: str,
+        position_status_days: int | None
+    ):
+        lawyer = db.query(Lawyer).filter(Lawyer.id == lawyer_id).first()
+
+        if not lawyer:
+            raise HTTPException(status_code=404, detail="Lawyer not found")
+
+        position_status = position_status.lower()
+
+        lawyer.position_status = position_status
+        lawyer.position_status_days = position_status_days
+
+        if position_status_days and position_status_days > 0:
+            lawyer.position_status_expiry = (
+                datetime.now(timezone.utc) +
+                timedelta(days=position_status_days)
+            )
+        else:
+            lawyer.position_status = "none"
+            lawyer.position_status_days = None
+            lawyer.position_status_expiry = None
+
+        db.commit()
+        db.refresh(lawyer)
+        return lawyer

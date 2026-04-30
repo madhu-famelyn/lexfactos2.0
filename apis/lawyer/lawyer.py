@@ -14,7 +14,8 @@ from schemas.lawyer.lawyer import (
     LawyerUpdate,
     LawyerStatusUpdate,
     LawyerResponse,
-    LawyerExcelUpload
+    LawyerExcelUpload,
+    UpdateLawyerPositionRequest
 )
 
 from service.lawyer.lawyer import LawyerService
@@ -67,9 +68,14 @@ async def create_lawyer(
     website_link: str = Form(None),
     linkedin_link: str = Form(None),
     known_languages: str = Form(None),
+
+    # ✅ NEW FIELD
+    experience: int = Form(None),
+
     profile_photo: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
+
     langs = known_languages.split(",") if known_languages else None
 
     data = LawyerCreate(
@@ -85,10 +91,15 @@ async def create_lawyer(
         password=password,
         website_link=website_link,
         linkedin_link=linkedin_link,
-        known_languages=langs
+        known_languages=langs,
+        experience=experience  # ✅ added
     )
 
     return LawyerService.create_lawyer(db, data, profile_photo)
+
+
+
+
 
 # ============================================================
 # GET ALL LAWYERS
@@ -184,3 +195,28 @@ def update_status(id: str, status_data: LawyerStatusUpdate, db: Session = Depend
 
 
 
+
+
+@lawyer_router.put("/{lawyer_id}/position")
+def change_lawyer_position(
+    lawyer_id: str,
+    payload: UpdateLawyerPositionRequest,
+    db: Session = Depends(get_db)
+):
+    lawyer = LawyerService.update_lawyer_position(
+        db=db,
+        lawyer_id=lawyer_id,
+        position_status=payload.position_status,
+        position_status_days=payload.position_status_days
+    )
+
+    return {
+        "success": True,
+        "message": "Lawyer position updated successfully",
+        "data": {
+            "lawyer_id": lawyer.id,
+            "position_status": lawyer.position_status,
+            "position_status_days": lawyer.position_status_days,
+            "position_status_expiry": lawyer.position_status_expiry
+        }
+    }

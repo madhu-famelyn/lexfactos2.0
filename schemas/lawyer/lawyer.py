@@ -20,6 +20,13 @@ class LawyerBase(BaseModel):
     website_link: Optional[str] = None
     linkedin_link: Optional[str] = None
 
+    # ✅ NEW FIELD
+    experience: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Total years of professional experience"
+    )
+
     # This will store ONLY S3 URL after upload
     image_url: Optional[str] = None
 
@@ -48,6 +55,12 @@ class LawyerUpdate(BaseModel):
     phone_number: Optional[str] = None
     website_link: Optional[str] = None
     linkedin_link: Optional[str] = None
+
+    # ✅ NEW FIELD
+    experience: Optional[int] = Field(
+        None,
+        ge=0
+    )
 
     # ONLY S3 URL, image upload handled separately
     image_url: Optional[str] = None
@@ -85,6 +98,10 @@ class LawyerResponse(BaseModel):
     zip_code: str
     email: EmailStr
     phone_number: str
+    position_status: str
+
+    # ✅ NEW FIELD
+    experience: Optional[int]
 
     website_link: Optional[str]
     linkedin_link: Optional[str]
@@ -101,6 +118,7 @@ class LawyerResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 # ============================================================
 # EXCEL UPLOAD → Excel SHOULD NOT send password
 # ============================================================
@@ -116,4 +134,20 @@ class LawyerExcelUpload(BaseModel):
     phone_number: str
     website_link: Optional[str] = None
     linkedin_link: Optional[str] = None
+
+    # ✅ NEW FIELD
+    experience: Optional[int] = Field(
+        None,
+        ge=0
+    )
+
     known_languages: Optional[List[str]] = None
+
+
+class UpdateLawyerPositionRequest(BaseModel):
+    position_status: str
+    position_status_days: Optional[int] = Field(
+        None,
+        gt=0,
+        description="Number of days the position should be active"
+    )
