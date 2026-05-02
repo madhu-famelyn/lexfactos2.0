@@ -16,7 +16,7 @@ review_router = APIRouter(
 # CREATE REVIEW
 # -------------------------------------------------
 @review_router.post(
-    "",
+    "/",
     response_model=ReviewRead,
     status_code=status.HTTP_201_CREATED
 )

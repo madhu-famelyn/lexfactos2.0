@@ -25,10 +25,10 @@ class Lawyer(Base):
     full_name = Column(String, nullable=False)
 
     address_line_1 = Column(String, nullable=False)
-    address_line_2 = Column(String, nullable=True)
 
     status = Column(String, nullable=False, default="pending")
     rejected_reason = Column(String, nullable=True)
+    position_status = Column(String, nullable=False, default="active")
 
     position_status = Column(
         String,
@@ -61,6 +61,9 @@ class Lawyer(Base):
     linkedin_link = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
 
+    bio = Column(String, nullable=True)
+    practice_areas = Column(JSON, nullable=True)
+    courts = Column(JSON, nullable=True)
     known_languages = Column(JSON, nullable=True)
 
     # ✅ NEW COLUMN — Years of Experience

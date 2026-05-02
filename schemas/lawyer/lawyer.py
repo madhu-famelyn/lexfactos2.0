@@ -9,7 +9,6 @@ from datetime import datetime
 class LawyerBase(BaseModel):
     full_name: str
     address_line_1: str
-    address_line_2: Optional[str] = None
     city: str
     state: str
     country: str
@@ -30,6 +29,9 @@ class LawyerBase(BaseModel):
     # This will store ONLY S3 URL after upload
     image_url: Optional[str] = None
 
+    bio: Optional[str] = None
+    practice_areas: Optional[List[str]] = None
+    courts: Optional[List[str]] = None
     known_languages: Optional[List[str]] = None
 
 
@@ -46,7 +48,6 @@ class LawyerCreate(LawyerBase):
 class LawyerUpdate(BaseModel):
     full_name: Optional[str] = None
     address_line_1: Optional[str] = None
-    address_line_2: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
@@ -65,6 +66,9 @@ class LawyerUpdate(BaseModel):
     # ONLY S3 URL, image upload handled separately
     image_url: Optional[str] = None
 
+    bio: Optional[str] = None
+    practice_areas: Optional[List[str]] = None
+    courts: Optional[List[str]] = None
     known_languages: Optional[List[str]] = None
 
 
@@ -91,7 +95,6 @@ class LawyerResponse(BaseModel):
     lawyer_id: str
     full_name: str
     address_line_1: str
-    address_line_2: Optional[str]
     city: str
     state: str
     country: str
@@ -106,6 +109,9 @@ class LawyerResponse(BaseModel):
     website_link: Optional[str]
     linkedin_link: Optional[str]
     image_url: Optional[str]
+    bio: Optional[str]
+    practice_areas: Optional[List[str]]
+    courts: Optional[List[str]]
     known_languages: Optional[List[str]]
 
     role: str
@@ -125,7 +131,6 @@ class LawyerResponse(BaseModel):
 class LawyerExcelUpload(BaseModel):
     full_name: str
     address_line_1: str
-    address_line_2: Optional[str] = None
     city: str
     state: str
     country: str
@@ -134,6 +139,7 @@ class LawyerExcelUpload(BaseModel):
     phone_number: str
     website_link: Optional[str] = None
     linkedin_link: Optional[str] = None
+<<<<<<< HEAD
 
     # ✅ NEW FIELD
     experience: Optional[int] = Field(
@@ -141,6 +147,11 @@ class LawyerExcelUpload(BaseModel):
         ge=0
     )
 
+=======
+    bio: Optional[str] = None
+    practice_areas: Optional[List[str]] = None
+    courts: Optional[List[str]] = None
+>>>>>>> 2e0cb1c (corrected database)
     known_languages: Optional[List[str]] = None
 
 

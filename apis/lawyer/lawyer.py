@@ -57,7 +57,6 @@ def search_lawyers_by_country(
 async def create_lawyer(
     full_name: str = Form(...),
     address_line_1: str = Form(...),
-    address_line_2: str = Form(None),
     city: str = Form(...),
     state: str = Form(...),
     country: str = Form(...),
@@ -67,6 +66,9 @@ async def create_lawyer(
     password: str = Form(...),
     website_link: str = Form(None),
     linkedin_link: str = Form(None),
+    bio: str = Form(None),
+    practice_areas: str = Form(None),
+    courts: str = Form(None),
     known_languages: str = Form(None),
 
     # ✅ NEW FIELD
@@ -75,13 +77,18 @@ async def create_lawyer(
     profile_photo: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
+<<<<<<< HEAD
 
     langs = known_languages.split(",") if known_languages else None
+=======
+    langs = [lang.strip() for lang in known_languages.split(",") if lang.strip()] if known_languages else None
+    areas = [area.strip() for area in practice_areas.split(",") if area.strip()] if practice_areas else None
+    court_list = [court.strip() for court in courts.split(",") if court.strip()] if courts else None
+>>>>>>> 2e0cb1c (corrected database)
 
     data = LawyerCreate(
         full_name=full_name,
         address_line_1=address_line_1,
-        address_line_2=address_line_2,
         city=city,
         state=state,
         country=country,
@@ -91,8 +98,15 @@ async def create_lawyer(
         password=password,
         website_link=website_link,
         linkedin_link=linkedin_link,
+<<<<<<< HEAD
         known_languages=langs,
         experience=experience  # ✅ added
+=======
+        bio=bio,
+        practice_areas=areas,
+        courts=court_list,
+        known_languages=langs
+>>>>>>> 2e0cb1c (corrected database)
     )
 
     return LawyerService.create_lawyer(db, data, profile_photo)
@@ -148,6 +162,14 @@ async def bulk_upload(file: UploadFile = File(...), db: Session = Depends(get_db
             # known_languages: JSON string → list
             if isinstance(row.get("known_languages"), str):
                 row["known_languages"] = json.loads(row["known_languages"])
+                
+            # practice_areas: JSON string → list
+            if isinstance(row.get("practice_areas"), str):
+                row["practice_areas"] = json.loads(row["practice_areas"])
+                
+            # courts: JSON string → list
+            if isinstance(row.get("courts"), str):
+                row["courts"] = json.loads(row["courts"])
 
             processed_rows.append(LawyerExcelUpload(**row))
 
@@ -192,6 +214,45 @@ def update_status(id: str, status_data: LawyerStatusUpdate, db: Session = Depend
         return LawyerService.update_lawyer_status(db, id, status_data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ============================================================
+# BULK DELETE LAWYERS BY STATUS (Admin Only)
+# ============================================================
+@lawyer_router.delete("/admin/bulk-delete/{status}")
+def bulk_delete_lawyers_by_status(status: str, db: Session = Depends(get_db)):
+    """
+    Delete all lawyers with a specific status.
+    Status must be: pending, approved, or rejected
+    
+    Usage: DELETE /lawyers/admin/bulk-delete/approved
+    """
+    try:
+        result = LawyerService.delete_lawyers_by_status(db, status)
+        return result
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to delete lawyers")
+
+
+# ============================================================
+# DELETE LAWYER (Single)
+# ============================================================
+@lawyer_router.delete("/{id}")
+def delete_lawyer(id: str, db: Session = Depends(get_db)):
+    try:
+        result = LawyerService.delete_lawyer(db, id)
+        return result
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Lawyer not found")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to delete lawyer")
+
 
 
 

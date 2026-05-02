@@ -1,5 +1,17 @@
 #internal env
 /.env
+
+# Debug and temporary test scripts
+debug_*.py
+quick_test.py
+test_*.py
+demo_*.py
+check_*.py
+
+# Node/npm files (shouldn't be in Python project)
+package-lock.json
+package.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

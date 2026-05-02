@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
@@ -173,6 +174,59 @@ class LawyerService:
         return lawyer
 
     # ============================================================
+    # DELETE LAWYER
+    # ============================================================
+    @staticmethod
+    def delete_lawyer(db: Session, id: str) -> dict:
+        lawyer = db.query(Lawyer).filter(Lawyer.id == id).first()
+        if not lawyer:
+            raise ValueError("Lawyer not found.")
+
+        try:
+            db.delete(lawyer)
+            db.commit()
+            return {"message": "Lawyer deleted successfully", "id": id}
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete lawyer"
+            )
+
+    # ============================================================
+    # BULK DELETE LAWYERS BY STATUS (Admin Feature)
+    # ============================================================
+    @staticmethod
+    def delete_lawyers_by_status(db: Session, lawyer_status: str) -> dict:
+        """Delete all lawyers with a specific status"""
+        LawyerService._validate_status(lawyer_status)
+        
+        try:
+            # Count lawyers with the specified status
+            count = db.query(Lawyer).filter(Lawyer.status == lawyer_status).count()
+            
+            if count == 0:
+                raise ValueError(f"No lawyers found with status '{lawyer_status}'.")
+            
+            # Delete all matching lawyers in one query
+            db.query(Lawyer).filter(Lawyer.status == lawyer_status).delete(synchronize_session=False)
+            db.commit()
+            
+            return {
+                "message": f"Successfully deleted {count} lawyer(s)",
+                "status": lawyer_status,
+                "deleted_count": count
+            }
+        except ValueError as e:
+            raise e
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete lawyers"
+            )
+
+    # ============================================================
     # GET LAWYER BY ID
     # ============================================================
     @staticmethod
@@ -284,11 +338,8 @@ class LawyerService:
 
         results = query.offset(offset).limit(limit).all()
 
-        if not results:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No lawyers found matching the criteria."
-            )
+        # Return empty list instead of 404 for better API experience
+        return results if results else []
 
         return results
 

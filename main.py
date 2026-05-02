@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 import os
 
+# ✅ Import all models to initialize relationships
+import models.base
+
 # ✅ App configuration
 env = os.getenv("ENV", "dev")
 
@@ -14,20 +17,30 @@ app = FastAPI(
     openapi_url="/openapi.json" if env in ["dev", "staging"] else None,
 )
 
+<<<<<<< HEAD
 # ✅ Global CORS configuration
+=======
+# ✅ Global CORS configuration (must be added AFTER app creation and BEFORE route definition)
+>>>>>>> 2e0cb1c (corrected database)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
+<<<<<<< HEAD
         "https://lexfactos.com",
         "https://www.lexfactos.com",
+=======
+        "https://www.lexfactos.com"
+>>>>>>> 2e0cb1c (corrected database)
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    max_age=3600,
 )
 
+<<<<<<< HEAD
 # ✅ Universal preflight handler
 @app.options("/{rest_of_path:path}")
 async def preflight_handler(rest_of_path: str):
@@ -47,6 +60,9 @@ async def loaderio_verification():
 # ✅ ROUTER REGISTRATION
 # ============================================================
 
+=======
+# ✅ Lazy load routers (imported on startup to avoid circular imports)
+>>>>>>> 2e0cb1c (corrected database)
 def include_routers(app: FastAPI):
     from apis.admin.admin import admin_router
     from apis.admin.auth import auth_router
@@ -71,11 +87,17 @@ def include_routers(app: FastAPI):
     # Message
     app.include_router(message_router)
 
+<<<<<<< HEAD
 # ✅ Load routers on startup
+=======
+# ✅ Load routers immediately (before startup)
+include_routers(app)
+
+# ✅ For debugging - verify startup
+>>>>>>> 2e0cb1c (corrected database)
 @app.on_event("startup")
 async def startup_event():
-    include_routers(app)
-    print("🚀 FastAPI app started with routers loaded!")
+    print("✅ FastAPI app started with routers loaded!")
 
 # ✅ Local development entrypoint
 if __name__ == "__main__":
@@ -86,6 +108,5 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=port,
-        reload=True,
-        reload_exclude=["node_modules", "migrations"],
+        reload=True
     )
