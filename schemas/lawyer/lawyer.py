@@ -139,7 +139,6 @@ class LawyerExcelUpload(BaseModel):
     phone_number: str
     website_link: Optional[str] = None
     linkedin_link: Optional[str] = None
-<<<<<<< HEAD
 
     # ✅ NEW FIELD
     experience: Optional[int] = Field(
@@ -147,11 +146,9 @@ class LawyerExcelUpload(BaseModel):
         ge=0
     )
 
-=======
     bio: Optional[str] = None
     practice_areas: Optional[List[str]] = None
     courts: Optional[List[str]] = None
->>>>>>> 2e0cb1c (corrected database)
     known_languages: Optional[List[str]] = None
 
 
