@@ -77,14 +77,9 @@ async def create_lawyer(
     profile_photo: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
-<<<<<<< HEAD
-
-    langs = known_languages.split(",") if known_languages else None
-=======
     langs = [lang.strip() for lang in known_languages.split(",") if lang.strip()] if known_languages else None
     areas = [area.strip() for area in practice_areas.split(",") if area.strip()] if practice_areas else None
     court_list = [court.strip() for court in courts.split(",") if court.strip()] if courts else None
->>>>>>> 2e0cb1c (corrected database)
 
     data = LawyerCreate(
         full_name=full_name,
@@ -98,15 +93,11 @@ async def create_lawyer(
         password=password,
         website_link=website_link,
         linkedin_link=linkedin_link,
-<<<<<<< HEAD
-        known_languages=langs,
-        experience=experience  # ✅ added
-=======
         bio=bio,
         practice_areas=areas,
         courts=court_list,
-        known_languages=langs
->>>>>>> 2e0cb1c (corrected database)
+        known_languages=langs,
+        experience=experience
     )
 
     return LawyerService.create_lawyer(db, data, profile_photo)
