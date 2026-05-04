@@ -17,22 +17,14 @@ app = FastAPI(
     openapi_url="/openapi.json" if env in ["dev", "staging"] else None,
 )
 
-<<<<<<< HEAD
-# ✅ Global CORS configuration
-=======
 # ✅ Global CORS configuration (must be added AFTER app creation and BEFORE route definition)
->>>>>>> 2e0cb1c (corrected database)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
-<<<<<<< HEAD
         "https://lexfactos.com",
         "https://www.lexfactos.com",
-=======
-        "https://www.lexfactos.com"
->>>>>>> 2e0cb1c (corrected database)
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -40,7 +32,6 @@ app.add_middleware(
     max_age=3600,
 )
 
-<<<<<<< HEAD
 # ✅ Universal preflight handler
 @app.options("/{rest_of_path:path}")
 async def preflight_handler(rest_of_path: str):
@@ -59,10 +50,6 @@ async def loaderio_verification():
 # ============================================================
 # ✅ ROUTER REGISTRATION
 # ============================================================
-
-=======
-# ✅ Lazy load routers (imported on startup to avoid circular imports)
->>>>>>> 2e0cb1c (corrected database)
 def include_routers(app: FastAPI):
     from apis.admin.admin import admin_router
     from apis.admin.auth import auth_router
@@ -87,14 +74,10 @@ def include_routers(app: FastAPI):
     # Message
     app.include_router(message_router)
 
-<<<<<<< HEAD
-# ✅ Load routers on startup
-=======
 # ✅ Load routers immediately (before startup)
 include_routers(app)
 
 # ✅ For debugging - verify startup
->>>>>>> 2e0cb1c (corrected database)
 @app.on_event("startup")
 async def startup_event():
     print("✅ FastAPI app started with routers loaded!")
