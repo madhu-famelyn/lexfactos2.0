@@ -4,7 +4,6 @@ from config.db.session import Base
 from sqlalchemy.orm import relationship
 import uuid
 
-
 class Lawyer(Base):
     __tablename__ = "lawyers"
 
@@ -29,12 +28,6 @@ class Lawyer(Base):
     status = Column(String, nullable=False, default="pending")
     rejected_reason = Column(String, nullable=True)
     position_status = Column(String, nullable=False, default="active")
-
-    position_status = Column(
-        String,
-        nullable=False,
-        default="non"
-    )
 
     position_status_days = Column(
         Integer,

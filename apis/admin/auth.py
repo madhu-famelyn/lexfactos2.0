@@ -2,7 +2,7 @@
 
 import os
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Form
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Body
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, validator
 from passlib.context import CryptContext
@@ -14,6 +14,7 @@ from models.admin.admin import Admin
 from models.lawyer.lawyer import Lawyer
 from models.user.user import User
 from config.db.session import SessionLocal
+from schemas.password_reset import ForgotPasswordRequest, ResetPasswordRequest, PasswordResetResponse
 
 # -------------------------------
 # Load environment variables
@@ -174,18 +175,18 @@ auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 # -------------------------------
 @auth_router.post("/login", response_model=LoginResponse)
 def login(
-    email: str = Form(...),
-    password: str = Form(...),
-    role: str = Form(...),
+    request: LoginInput = Body(...),
     db: Session = Depends(get_db)
 ):
     """
-    Login with email + password + role
+    Login with email + password + role (JSON body)
     """
+    import json
+    print(f"\n🔍 DEBUG LOGIN - Request received: email={request.email}, password_len={len(request.password)}, role={request.role}")
+    
+    role = request.role.lower()
 
-    role = role.lower()
-
-    user_obj = AuthService.authenticate(db, email, password, role)
+    user_obj = AuthService.authenticate(db, request.email, request.password, role)
 
     user_data = {
         "id": user_obj.id,
@@ -208,3 +209,89 @@ def login(
         user=UserResponse(**user_data),
         token=TokenData(access_token=token)
     )
+
+
+# ============================================================
+# FORGOT PASSWORD - REQUEST RESET
+# ============================================================
+@auth_router.post("/forgot-password", response_model=PasswordResetResponse)
+def forgot_password(
+    request: ForgotPasswordRequest = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Request password reset. Email will be sent with reset link.
+    Supported roles: lawyer, user, admin
+    """
+    role = request.role.lower()
+
+    if role == "lawyer":
+        from service.lawyer.lawyer import LawyerService
+        result = LawyerService.forgot_password(db, request.email)
+        return PasswordResetResponse(success=True, message=result["message"])
+
+    elif role == "user":
+        from service.user.user import UserService
+        result = UserService.forgot_password(db, request.email)
+        return PasswordResetResponse(success=True, message=result["message"])
+
+    elif role == "admin":
+        from service.admin.admin import AdminService
+        result = AdminService.forgot_password(db, request.email)
+        return PasswordResetResponse(success=True, message=result["message"])
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role. Must be: lawyer, user, or admin"
+        )
+
+
+# ============================================================
+# RESET PASSWORD - WITH TOKEN
+# ============================================================
+@auth_router.post("/reset-password", response_model=PasswordResetResponse)
+def reset_password(
+    request: ResetPasswordRequest = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Reset password using reset token.
+    Token is obtained from forgot password email.
+    """
+    try:
+        # Decode token to determine user type
+        payload = jwt.decode(request.token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        user_type = payload.get("type")
+
+        if user_type == "lawyer":
+            from service.lawyer.lawyer import LawyerService
+            result = LawyerService.reset_password(db, request.token, request.new_password)
+            return PasswordResetResponse(success=True, message=result["message"])
+
+        elif user_type == "user":
+            from service.user.user import UserService
+            result = UserService.reset_password(db, request.token, request.new_password)
+            return PasswordResetResponse(success=True, message=result["message"])
+
+        elif user_type == "admin":
+            from service.admin.admin import AdminService
+            result = AdminService.reset_password(db, request.token, request.new_password)
+            return PasswordResetResponse(success=True, message=result["message"])
+
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid token type"
+            )
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token has expired"
+        )
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset token"
+        )

@@ -135,6 +135,10 @@ async def bulk_upload(file: UploadFile = File(...), db: Session = Depends(get_db
     try:
         df = pd.read_excel(file.file)
 
+        # Normalize column headers → strip whitespace, lowercase, spaces→underscores
+        # So "Bio", "Image URL", "Known Languages" all map correctly
+        df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
+
         # Replace NaN with None
         df = df.where(pd.notnull(df), None)
 
@@ -150,17 +154,24 @@ async def bulk_upload(file: UploadFile = File(...), db: Session = Depends(get_db
             if row.get("phone_number") is not None:
                 row["phone_number"] = str(row["phone_number"])
 
-            # known_languages: JSON string → list
-            if isinstance(row.get("known_languages"), str):
-                row["known_languages"] = json.loads(row["known_languages"])
-                
-            # practice_areas: JSON string → list
-            if isinstance(row.get("practice_areas"), str):
-                row["practice_areas"] = json.loads(row["practice_areas"])
-                
-            # courts: JSON string → list
-            if isinstance(row.get("courts"), str):
-                row["courts"] = json.loads(row["courts"])
+            # JSON list columns — support both JSON arrays and plain "A, B, C" CSV strings
+            for list_col in ("known_languages", "practice_areas", "courts"):
+                raw = row.get(list_col)
+                if isinstance(raw, str):
+                    stripped = raw.strip()
+                    if not stripped:
+                        row[list_col] = None  # empty cell → null
+                    elif stripped.startswith("["):
+                        # Proper JSON array → parse it
+                        try:
+                            row[list_col] = json.loads(stripped)
+                        except json.JSONDecodeError:
+                            # Malformed JSON — fall back to comma split
+                            row[list_col] = [v.strip() for v in stripped.strip("[]").split(",") if v.strip()]
+                    else:
+                        # Plain "Telugu, Hindi, English" → split by comma
+                        row[list_col] = [v.strip() for v in stripped.split(",") if v.strip()]
+
 
             processed_rows.append(LawyerExcelUpload(**row))
 

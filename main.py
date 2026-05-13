@@ -77,11 +77,6 @@ def include_routers(app: FastAPI):
 # ✅ Load routers immediately (before startup)
 include_routers(app)
 
-# ✅ For debugging - verify startup
-@app.on_event("startup")
-async def startup_event():
-    print("✅ FastAPI app started with routers loaded!")
-
 # ✅ Local development entrypoint
 if __name__ == "__main__":
     import uvicorn

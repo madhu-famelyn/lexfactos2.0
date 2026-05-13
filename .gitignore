@@ -12,6 +12,11 @@ check_*.py
 package-lock.json
 package.json
 
+# Excel / data upload files (test data - do not commit)
+*.xlsx
+*.xls
+*.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
