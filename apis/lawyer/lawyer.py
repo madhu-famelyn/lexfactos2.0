@@ -133,11 +133,36 @@ def get_by_status(status: str, db: Session = Depends(get_db)):
 @lawyer_router.post("/bulk-upload", response_model=List[LawyerResponse])
 async def bulk_upload(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
-        df = pd.read_excel(file.file)
+        import io
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
 
         # Normalize column headers → strip whitespace, lowercase, spaces→underscores
         # So "Bio", "Image URL", "Known Languages" all map correctly
-        df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
+        normalized_cols = []
+        for col in df.columns:
+            clean_col = col.strip().lower().replace(" ", "_")
+            # Forgiving aliases for image URL
+            if clean_col in ["image_link", "profile_image", "photo", "image", "imageurl", "profile_picture", "s3_link", "aws_link", "lawyer_image", "profile_link", "aws_s3_link", "image_url", "url", "picture", "aws_s3_uploaded_bucket_link", "s3_image"]:
+                clean_col = "image_url"
+            elif any(x in clean_col for x in ["s3", "aws_link", "bucket_link", "lawyer_image", "profile_link"]):
+                clean_col = "image_url"
+            normalized_cols.append(clean_col)
+            
+        df.columns = normalized_cols
+
+        # DEBUG: Dump to file
+        try:
+            with open("debug_upload.txt", "w") as f:
+                f.write(f"Normalized Columns: {df.columns.tolist()}\n")
+                if 'image_url' in df.columns:
+                    f.write("First 5 image_url values:\n")
+                    for val in df['image_url'].head():
+                        f.write(f"{val}\n")
+                else:
+                    f.write("CRITICAL: No image_url column found!\n")
+        except Exception as e:
+            print("Debug write failed:", e)
 
         # Replace NaN with None
         df = df.where(pd.notnull(df), None)

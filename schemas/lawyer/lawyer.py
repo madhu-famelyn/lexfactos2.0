@@ -139,6 +139,7 @@ class LawyerExcelUpload(BaseModel):
     phone_number: str
     website_link: Optional[str] = None
     linkedin_link: Optional[str] = None
+    image_url: Optional[str] = None
 
     # ✅ NEW FIELD
     experience: Optional[int] = Field(

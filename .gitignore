@@ -7,6 +7,10 @@ quick_test.py
 test_*.py
 demo_*.py
 check_*.py
+fix_*.py
+list_*.py
+verify_*.py
+create_*.py
 
 # Node/npm files (shouldn't be in Python project)
 package-lock.json
@@ -180,5 +184,4 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
-/.env
+#.idea/

@@ -314,7 +314,7 @@ class LawyerService:
                 website_link=clean.get("website_link") or None,
                 linkedin_link=clean.get("linkedin_link") or None,
                 # Use Excel-provided image_url if given, else fall back to default
-                image_url=clean.get("image_url") or LawyerService.FIXED_IMAGE_URL,
+                image_url=(clean.get("image_url").strip() if isinstance(clean.get("image_url"), str) else clean.get("image_url")) or LawyerService.FIXED_IMAGE_URL,
                 bio=clean.get("bio") or None,
                 practice_areas=clean.get("practice_areas") or None,
                 courts=clean.get("courts") or None,
